@@ -71,6 +71,22 @@ if contains_any(processed, strtoremovecolon)
 end
 
 
+% add 1 to any indexing to change base to 1, before [] gets converted.
+% TODO: support more than one dimension. 
+
+closingbracketpos = 1;
+while(1)
+closingbracketpos = strfind(processed(closingbracketpos+3:end), ']') + closingbracketpos+3-1;
+    if ~isempty(closingbracketpos)
+        closingbracketpos = closingbracketpos(1);
+        processed = [processed(1:closingbracketpos-1) '+1' processed(closingbracketpos:end)];
+    else
+        break;
+    end
+end
+
+    
+
 % keyword replacement
 
 strtoreplace = {...
@@ -100,7 +116,17 @@ if ~contains_any(processed, strtonotaddsemicolon)
 
     pos_before_comment = strfind(processed, '%');
     if isempty(pos_before_comment)
-        pos_before_comment = length(processed) - 1;
+%         pos_before_comment = length(processed) - 1;
+        % accommodate for different platform: check end of line
+        pos_before_comment = strfind(processed, sprintf('\n'));
+        if isempty(pos_before_comment)
+            pos_before_comment = length(processed);
+        end
+        
+        if (pos_before_comment > 1 && processed(pos_before_comment - 1) == sprintf('\r'))
+            pos_before_comment = pos_before_comment - 1;
+        end
+        
     end
 
     firstpos = pos_before_comment(1);
@@ -258,7 +284,7 @@ while ischar(tline)
         if c == indentation_char
             current_indents = current_indents + 1;
         else
-            if c == sprintf('\r') || c == sprintf('\n')
+            if c == sprintf('\r') || c == sprintf('\n') || c == '%' % including comments
                 current_indents = -1; % empty line, invalidates the value;
             end
             break;
@@ -307,4 +333,11 @@ delete([filename '.temp']);
 
 end
 
-% TODO: replace strfind with a custom one that does not search in string literal
+% TODO: replace strfind with a custom one that does not search in string
+% literal or comments
+% TODO: line-break \ -> ...
+% TODO: file end indentation
+% TODO: return an expression
+% TODO: elif
+% TODO: string ""
+% TODO: element-wise *,/,^
